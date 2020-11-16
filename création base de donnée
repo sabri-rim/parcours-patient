@@ -1,0 +1,2404 @@
+-- SCHEMA: OMOP
+
+-- DROP SCHEMA "OMOP" ;
+
+CREATE SCHEMA "OMOP"
+    AUTHORIZATION postgres;
+
+
+
+-- Database: omop 1
+
+-- DROP DATABASE "omop 1";
+
+CREATE DATABASE "omop 1"
+    WITH 
+    OWNER = pg_read_server_files
+    ENCODING = 'UTF8'
+    LC_COLLATE = 'French_France.1252'
+    LC_CTYPE = 'French_France.1252'
+    TABLESPACE = pg_default
+    CONNECTION LIMIT = -1;
+
+-- Table: OMOP.attribute_definition
+
+-- DROP TABLE "OMOP".attribute_definition;
+
+CREATE TABLE "OMOP".attribute_definition
+(
+    attribute_definition_id integer NOT NULL,
+    attribute_name character varying(255) COLLATE pg_catalog."default" NOT NULL,
+    attribute_description text COLLATE pg_catalog."default",
+    attribute_type_concept_id integer NOT NULL,
+    attribute_syntax text COLLATE pg_catalog."default"
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE "OMOP".attribute_definition
+    OWNER to postgres;
+    
+    -- Table: OMOP.care_site
+
+-- DROP TABLE "OMOP".care_site;
+
+CREATE TABLE "OMOP".care_site
+(
+    care_site_id bigint NOT NULL,
+    care_site_name character varying(255) COLLATE pg_catalog."default",
+    place_of_service_concept_id integer NOT NULL,
+    location_id bigint,
+    care_site_source_value character varying(50) COLLATE pg_catalog."default",
+    place_of_service_source_value character varying(50) COLLATE pg_catalog."default",
+    CONSTRAINT xpk_care_site PRIMARY KEY (care_site_id),
+    CONSTRAINT fpk_care_site_location FOREIGN KEY (location_id)
+        REFERENCES "OMOP".location (location_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_care_site_place FOREIGN KEY (place_of_service_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE "OMOP".care_site
+    OWNER to postgres;
+    
+    -- Table: OMOP.cdm_source
+
+-- DROP TABLE "OMOP".cdm_source;
+
+CREATE TABLE "OMOP".cdm_source
+(
+    cdm_source_name character varying(255) COLLATE pg_catalog."default" NOT NULL,
+    cdm_source_abbreviation character varying(25) COLLATE pg_catalog."default",
+    cdm_holder character varying(255) COLLATE pg_catalog."default",
+    source_description text COLLATE pg_catalog."default",
+    source_documentation_reference character varying(255) COLLATE pg_catalog."default",
+    cdm_etl_reference character varying(255) COLLATE pg_catalog."default",
+    source_release_date date,
+    cdm_release_date date,
+    cdm_version character varying(10) COLLATE pg_catalog."default",
+    vocabulary_version character varying(20) COLLATE pg_catalog."default"
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE "OMOP".cdm_source
+    OWNER to postgres;
+    
+    -- Table: OMOP.cohort
+
+-- DROP TABLE "OMOP".cohort;
+
+CREATE TABLE "OMOP".cohort
+(
+    cohort_definition_id bigint NOT NULL,
+    subject_id bigint NOT NULL,
+    cohort_start_date date NOT NULL,
+    cohort_end_date date NOT NULL,
+    CONSTRAINT xpk_cohort PRIMARY KEY (cohort_definition_id, subject_id, cohort_start_date, cohort_end_date),
+    CONSTRAINT fpk_cohort_definition FOREIGN KEY (cohort_definition_id)
+        REFERENCES "OMOP".cohort_definition (cohort_definition_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE "OMOP".cohort
+    OWNER to postgres;
+-- Index: idx_cohort_c_definition_id
+
+-- DROP INDEX "OMOP".idx_cohort_c_definition_id;
+
+CREATE INDEX idx_cohort_c_definition_id
+    ON "OMOP".cohort USING btree
+    (cohort_definition_id ASC NULLS LAST)
+    TABLESPACE pg_default;
+-- Index: idx_cohort_subject_id
+
+-- DROP INDEX "OMOP".idx_cohort_subject_id;
+
+CREATE INDEX idx_cohort_subject_id
+    ON "OMOP".cohort USING btree
+    (subject_id ASC NULLS LAST)
+    TABLESPACE pg_default;
+    
+    -- Table: OMOP.cohort_definition
+
+-- DROP TABLE "OMOP".cohort_definition;
+
+CREATE TABLE "OMOP".cohort_definition
+(
+    cohort_definition_id integer NOT NULL,
+    cohort_definition_name character varying(255) COLLATE pg_catalog."default" NOT NULL,
+    cohort_definition_description text COLLATE pg_catalog."default",
+    definition_type_concept_id integer NOT NULL,
+    cohort_definition_syntax text COLLATE pg_catalog."default",
+    subject_concept_id integer NOT NULL,
+    cohort_initiation_date date,
+    CONSTRAINT xpk_cohort_definition PRIMARY KEY (cohort_definition_id),
+    CONSTRAINT fpk_cohort_definition_concept FOREIGN KEY (definition_type_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_subject_concept FOREIGN KEY (subject_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE "OMOP".cohort_definition
+    OWNER to postgres;
+-- Index: idx_cohort_definition_id
+
+-- DROP INDEX "OMOP".idx_cohort_definition_id;
+
+CREATE INDEX idx_cohort_definition_id
+    ON "OMOP".cohort_definition USING btree
+    (cohort_definition_id ASC NULLS LAST)
+    TABLESPACE pg_default;
+
+ALTER TABLE "OMOP".cohort_definition
+    CLUSTER ON idx_cohort_definition_id;
+    
+    -- Table: OMOP.concept
+
+-- DROP TABLE "OMOP".concept;
+
+CREATE TABLE "OMOP".concept
+(
+    concept_id integer NOT NULL,
+    concept_name character varying(255) COLLATE pg_catalog."default" NOT NULL,
+    domain_id character varying(20) COLLATE pg_catalog."default" NOT NULL,
+    vocabulary_id character varying(20) COLLATE pg_catalog."default" NOT NULL,
+    concept_class_id character varying(20) COLLATE pg_catalog."default" NOT NULL,
+    standard_concept character varying(1) COLLATE pg_catalog."default",
+    concept_code character varying(50) COLLATE pg_catalog."default" NOT NULL,
+    valid_start_date date NOT NULL,
+    valid_end_date date NOT NULL,
+    invalid_reason character varying(1) COLLATE pg_catalog."default",
+    CONSTRAINT xpk_concept PRIMARY KEY (concept_id),
+    CONSTRAINT fpk_concept_class FOREIGN KEY (concept_class_id)
+        REFERENCES "OMOP".concept_class (concept_class_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_concept_domain FOREIGN KEY (domain_id)
+        REFERENCES "OMOP".domain (domain_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_concept_vocabulary FOREIGN KEY (vocabulary_id)
+        REFERENCES "OMOP".vocabulary (vocabulary_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT chk_c_concept_name CHECK (concept_name::text <> ''::text),
+    CONSTRAINT chk_c_standard_concept CHECK (COALESCE(standard_concept, 'C'::character varying)::text = ANY (ARRAY['C'::character varying, 'S'::character varying]::text[])),
+    CONSTRAINT chk_c_concept_code CHECK (concept_code::text <> ''::text),
+    CONSTRAINT chk_c_invalid_reason CHECK (COALESCE(invalid_reason, 'D'::character varying)::text = ANY (ARRAY['D'::character varying, 'U'::character varying]::text[]))
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE "OMOP".concept
+    OWNER to postgres;
+-- Index: idx_concept_class_id
+
+-- DROP INDEX "OMOP".idx_concept_class_id;
+
+CREATE INDEX idx_concept_class_id
+    ON "OMOP".concept USING btree
+    (concept_class_id COLLATE pg_catalog."default" ASC NULLS LAST)
+    TABLESPACE pg_default;
+-- Index: idx_concept_code
+
+-- DROP INDEX "OMOP".idx_concept_code;
+
+CREATE INDEX idx_concept_code
+    ON "OMOP".concept USING btree
+    (concept_code COLLATE pg_catalog."default" ASC NULLS LAST)
+    TABLESPACE pg_default;
+-- Index: idx_concept_concept_id
+
+-- DROP INDEX "OMOP".idx_concept_concept_id;
+
+CREATE UNIQUE INDEX idx_concept_concept_id
+    ON "OMOP".concept USING btree
+    (concept_id ASC NULLS LAST)
+    TABLESPACE pg_default;
+
+ALTER TABLE "OMOP".concept
+    CLUSTER ON idx_concept_concept_id;
+-- Index: idx_concept_domain_id
+
+-- DROP INDEX "OMOP".idx_concept_domain_id;
+
+CREATE INDEX idx_concept_domain_id
+    ON "OMOP".concept USING btree
+    (domain_id COLLATE pg_catalog."default" ASC NULLS LAST)
+    TABLESPACE pg_default;
+-- Index: idx_concept_id_varchar
+
+-- DROP INDEX "OMOP".idx_concept_id_varchar;
+
+CREATE INDEX idx_concept_id_varchar
+    ON "OMOP".concept USING btree
+    ((concept_id::character varying) COLLATE pg_catalog."default" ASC NULLS LAST)
+    TABLESPACE pg_default;
+-- Index: idx_concept_vocabluary_id
+
+-- DROP INDEX "OMOP".idx_concept_vocabluary_id;
+
+CREATE INDEX idx_concept_vocabluary_id
+    ON "OMOP".concept USING btree
+    (vocabulary_id COLLATE pg_catalog."default" ASC NULLS LAST)
+    TABLESPACE pg_default;
+    
+    
+    -- Table: OMOP.concept_ancestor
+
+-- DROP TABLE "OMOP".concept_ancestor;
+
+CREATE TABLE "OMOP".concept_ancestor
+(
+    ancestor_concept_id integer NOT NULL,
+    descendant_concept_id integer NOT NULL,
+    min_levels_of_separation integer NOT NULL,
+    max_levels_of_separation integer NOT NULL,
+    CONSTRAINT xpk_concept_ancestor PRIMARY KEY (ancestor_concept_id, descendant_concept_id),
+    CONSTRAINT fpk_concept_ancestor_concept_1 FOREIGN KEY (ancestor_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_concept_ancestor_concept_2 FOREIGN KEY (descendant_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE "OMOP".concept_ancestor
+    OWNER to postgres;
+-- Index: idx_concept_ancestor_id_1
+
+-- DROP INDEX "OMOP".idx_concept_ancestor_id_1;
+
+CREATE INDEX idx_concept_ancestor_id_1
+    ON "OMOP".concept_ancestor USING btree
+    (ancestor_concept_id ASC NULLS LAST)
+    TABLESPACE pg_default;
+
+ALTER TABLE "OMOP".concept_ancestor
+    CLUSTER ON idx_concept_ancestor_id_1;
+-- Index: idx_concept_ancestor_id_2
+
+-- DROP INDEX "OMOP".idx_concept_ancestor_id_2;
+
+CREATE INDEX idx_concept_ancestor_id_2
+    ON "OMOP".concept_ancestor USING btree
+    (descendant_concept_id ASC NULLS LAST)
+    TABLESPACE pg_default;
+    
+    
+    -- Table: OMOP.concept_class
+
+-- DROP TABLE "OMOP".concept_class;
+
+CREATE TABLE "OMOP".concept_class
+(
+    concept_class_id character varying(20) COLLATE pg_catalog."default" NOT NULL,
+    concept_class_name character varying(255) COLLATE pg_catalog."default" NOT NULL,
+    concept_class_concept_id integer NOT NULL,
+    CONSTRAINT xpk_concept_class PRIMARY KEY (concept_class_id),
+    CONSTRAINT fpk_concept_class_concept FOREIGN KEY (concept_class_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE "OMOP".concept_class
+    OWNER to postgres;
+-- Index: idx_concept_class_class_id
+
+-- DROP INDEX "OMOP".idx_concept_class_class_id;
+
+CREATE UNIQUE INDEX idx_concept_class_class_id
+    ON "OMOP".concept_class USING btree
+    (concept_class_id COLLATE pg_catalog."default" ASC NULLS LAST)
+    TABLESPACE pg_default;
+
+ALTER TABLE "OMOP".concept_class
+    CLUSTER ON idx_concept_class_class_id;
+    
+    -- Table: OMOP.concept_relationship
+
+-- DROP TABLE "OMOP".concept_relationship;
+
+CREATE TABLE "OMOP".concept_relationship
+(
+    concept_id_1 integer NOT NULL,
+    concept_id_2 integer NOT NULL,
+    relationship_id character varying(20) COLLATE pg_catalog."default" NOT NULL,
+    valid_start_date date NOT NULL,
+    valid_end_date date NOT NULL,
+    invalid_reason character varying(1) COLLATE pg_catalog."default",
+    CONSTRAINT xpk_concept_relationship PRIMARY KEY (concept_id_1, concept_id_2, relationship_id),
+    CONSTRAINT fpk_concept_relationship_c_1 FOREIGN KEY (concept_id_1)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_concept_relationship_c_2 FOREIGN KEY (concept_id_2)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_concept_relationship_id FOREIGN KEY (relationship_id)
+        REFERENCES "OMOP".relationship (relationship_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT chk_cr_invalid_reason CHECK (COALESCE(invalid_reason, 'D'::character varying)::text = 'D'::text)
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE "OMOP".concept_relationship
+    OWNER to postgres;
+-- Index: idx_concept_relationship_id_1
+
+-- DROP INDEX "OMOP".idx_concept_relationship_id_1;
+
+CREATE INDEX idx_concept_relationship_id_1
+    ON "OMOP".concept_relationship USING btree
+    (concept_id_1 ASC NULLS LAST)
+    TABLESPACE pg_default;
+-- Index: idx_concept_relationship_id_2
+
+-- DROP INDEX "OMOP".idx_concept_relationship_id_2;
+
+CREATE INDEX idx_concept_relationship_id_2
+    ON "OMOP".concept_relationship USING btree
+    (concept_id_2 ASC NULLS LAST)
+    TABLESPACE pg_default;
+-- Index: idx_concept_relationship_id_3
+
+-- DROP INDEX "OMOP".idx_concept_relationship_id_3;
+
+CREATE INDEX idx_concept_relationship_id_3
+    ON "OMOP".concept_relationship USING btree
+    (relationship_id COLLATE pg_catalog."default" ASC NULLS LAST)
+    TABLESPACE pg_default;
+    
+    -- Table: OMOP.concept_synonym
+
+-- DROP TABLE "OMOP".concept_synonym;
+
+CREATE TABLE "OMOP".concept_synonym
+(
+    concept_id integer NOT NULL,
+    concept_synonym_name character varying(1000) COLLATE pg_catalog."default" NOT NULL,
+    language_concept_id integer NOT NULL,
+    CONSTRAINT uq_concept_synonym UNIQUE (concept_id, concept_synonym_name, language_concept_id),
+    CONSTRAINT fpk_concept_synonym_concept FOREIGN KEY (concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_concept_synonym_language_concept FOREIGN KEY (language_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT chk_csyn_concept_synonym_name CHECK (concept_synonym_name::text <> ''::text)
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE "OMOP".concept_synonym
+    OWNER to postgres;
+-- Index: idx_concept_synonym_id
+
+-- DROP INDEX "OMOP".idx_concept_synonym_id;
+
+CREATE INDEX idx_concept_synonym_id
+    ON "OMOP".concept_synonym USING btree
+    (concept_id ASC NULLS LAST)
+    TABLESPACE pg_default;
+
+ALTER TABLE "OMOP".concept_synonym
+    CLUSTER ON idx_concept_synonym_id;
+    
+    -- Table: OMOP.condition_era
+
+-- DROP TABLE "OMOP".condition_era;
+
+CREATE TABLE "OMOP".condition_era
+(
+    condition_era_id bigint NOT NULL,
+    person_id bigint NOT NULL,
+    condition_concept_id integer NOT NULL,
+    condition_era_start_datetime timestamp without time zone NOT NULL,
+    condition_era_end_datetime timestamp without time zone NOT NULL,
+    condition_occurrence_count integer,
+    CONSTRAINT xpk_condition_era PRIMARY KEY (condition_era_id),
+    CONSTRAINT fpk_condition_era_concept FOREIGN KEY (condition_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_condition_era_person FOREIGN KEY (person_id)
+        REFERENCES "OMOP".person (person_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE "OMOP".condition_era
+    OWNER to postgres;
+-- Index: idx_condition_era_concept_id
+
+-- DROP INDEX "OMOP".idx_condition_era_concept_id;
+
+CREATE INDEX idx_condition_era_concept_id
+    ON "OMOP".condition_era USING btree
+    (condition_concept_id ASC NULLS LAST)
+    TABLESPACE pg_default;
+-- Index: idx_condition_era_person_id
+
+-- DROP INDEX "OMOP".idx_condition_era_person_id;
+
+CREATE INDEX idx_condition_era_person_id
+    ON "OMOP".condition_era USING btree
+    (person_id ASC NULLS LAST)
+    TABLESPACE pg_default;
+
+ALTER TABLE "OMOP".condition_era
+    CLUSTER ON idx_condition_era_person_id;
+    
+    -- Table: OMOP.condition_occurrence
+
+-- DROP TABLE "OMOP".condition_occurrence;
+
+CREATE TABLE "OMOP".condition_occurrence
+(
+    condition_occurrence_id bigint NOT NULL,
+    person_id bigint NOT NULL,
+    condition_concept_id integer NOT NULL,
+    condition_start_date date,
+    condition_start_datetime timestamp without time zone NOT NULL,
+    condition_end_date date,
+    condition_end_datetime timestamp without time zone,
+    condition_type_concept_id integer NOT NULL,
+    condition_status_concept_id integer NOT NULL,
+    stop_reason character varying(20) COLLATE pg_catalog."default",
+    provider_id bigint,
+    visit_occurrence_id bigint,
+    visit_detail_id bigint,
+    condition_source_value character varying(50) COLLATE pg_catalog."default",
+    condition_source_concept_id integer NOT NULL,
+    condition_status_source_value character varying(50) COLLATE pg_catalog."default",
+    CONSTRAINT xpk_condition_occurrence PRIMARY KEY (condition_occurrence_id),
+    CONSTRAINT fpk_condition_concept FOREIGN KEY (condition_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_condition_concept_s FOREIGN KEY (condition_source_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_condition_person FOREIGN KEY (person_id)
+        REFERENCES "OMOP".person (person_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_condition_provider FOREIGN KEY (provider_id)
+        REFERENCES "OMOP".provider (provider_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_condition_status_concept FOREIGN KEY (condition_status_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_condition_type_concept FOREIGN KEY (condition_type_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_condition_v_detail FOREIGN KEY (visit_detail_id)
+        REFERENCES "OMOP".visit_detail (visit_detail_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_condition_visit FOREIGN KEY (visit_occurrence_id)
+        REFERENCES "OMOP".visit_occurrence (visit_occurrence_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE "OMOP".condition_occurrence
+    OWNER to postgres;
+-- Index: idx_condition_concept_id
+
+-- DROP INDEX "OMOP".idx_condition_concept_id;
+
+CREATE INDEX idx_condition_concept_id
+    ON "OMOP".condition_occurrence USING btree
+    (condition_concept_id ASC NULLS LAST)
+    TABLESPACE pg_default;
+-- Index: idx_condition_person_id
+
+-- DROP INDEX "OMOP".idx_condition_person_id;
+
+CREATE INDEX idx_condition_person_id
+    ON "OMOP".condition_occurrence USING btree
+    (person_id ASC NULLS LAST)
+    TABLESPACE pg_default;
+
+ALTER TABLE "OMOP".condition_occurrence
+    CLUSTER ON idx_condition_person_id;
+-- Index: idx_condition_visit_id
+
+-- DROP INDEX "OMOP".idx_condition_visit_id;
+
+CREATE INDEX idx_condition_visit_id
+    ON "OMOP".condition_occurrence USING btree
+    (visit_occurrence_id ASC NULLS LAST)
+    TABLESPACE pg_default;
+    
+    -- Table: OMOP.cost
+
+-- DROP TABLE "OMOP".cost;
+
+CREATE TABLE "OMOP".cost
+(
+    cost_id bigint NOT NULL,
+    person_id bigint NOT NULL,
+    cost_event_id bigint NOT NULL,
+    cost_event_field_concept_id integer NOT NULL,
+    cost_concept_id integer NOT NULL,
+    cost_type_concept_id integer NOT NULL,
+    currency_concept_id integer NOT NULL,
+    cost numeric,
+    incurred_date date NOT NULL,
+    billed_date date,
+    paid_date date,
+    revenue_code_concept_id integer NOT NULL,
+    drg_concept_id integer NOT NULL,
+    cost_source_value character varying(50) COLLATE pg_catalog."default",
+    cost_source_concept_id integer NOT NULL,
+    revenue_code_source_value character varying(50) COLLATE pg_catalog."default",
+    drg_source_value character varying(3) COLLATE pg_catalog."default",
+    payer_plan_period_id bigint,
+    CONSTRAINT xpk_visit_cost PRIMARY KEY (cost_id),
+    CONSTRAINT fpk_cost_concept FOREIGN KEY (cost_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_cost_currency FOREIGN KEY (currency_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_cost_period FOREIGN KEY (payer_plan_period_id)
+        REFERENCES "OMOP".payer_plan_period (payer_plan_period_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_cost_person FOREIGN KEY (person_id)
+        REFERENCES "OMOP".person (person_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_cost_s FOREIGN KEY (cost_source_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_cost_type FOREIGN KEY (cost_type_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_drg_concept FOREIGN KEY (drg_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_revenue_concept FOREIGN KEY (revenue_code_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE "OMOP".cost
+    OWNER to postgres;
+-- Index: idx_cost_person_id
+
+-- DROP INDEX "OMOP".idx_cost_person_id;
+
+CREATE INDEX idx_cost_person_id
+    ON "OMOP".cost USING btree
+    (person_id ASC NULLS LAST)
+    TABLESPACE pg_default;
+
+ALTER TABLE "OMOP".cost
+    CLUSTER ON idx_cost_person_id;
+    
+    -- Table: OMOP.device_exposure
+
+-- DROP TABLE "OMOP".device_exposure;
+
+CREATE TABLE "OMOP".device_exposure
+(
+    device_exposure_id bigint NOT NULL,
+    person_id bigint NOT NULL,
+    device_concept_id integer NOT NULL,
+    device_exposure_start_date date,
+    device_exposure_start_datetime timestamp without time zone NOT NULL,
+    device_exposure_end_date date,
+    device_exposure_end_datetime timestamp without time zone,
+    device_type_concept_id integer NOT NULL,
+    unique_device_id character varying(50) COLLATE pg_catalog."default",
+    quantity integer,
+    provider_id bigint,
+    visit_occurrence_id bigint,
+    visit_detail_id bigint,
+    device_source_value character varying(100) COLLATE pg_catalog."default",
+    device_source_concept_id integer NOT NULL,
+    CONSTRAINT xpk_device_exposure PRIMARY KEY (device_exposure_id),
+    CONSTRAINT fpk_device_concept FOREIGN KEY (device_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_device_concept_s FOREIGN KEY (device_source_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_device_person FOREIGN KEY (person_id)
+        REFERENCES "OMOP".person (person_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_device_provider FOREIGN KEY (provider_id)
+        REFERENCES "OMOP".provider (provider_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_device_type_concept FOREIGN KEY (device_type_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_device_v_detail FOREIGN KEY (visit_detail_id)
+        REFERENCES "OMOP".visit_detail (visit_detail_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_device_visit FOREIGN KEY (visit_occurrence_id)
+        REFERENCES "OMOP".visit_occurrence (visit_occurrence_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE "OMOP".device_exposure
+    OWNER to postgres;
+-- Index: idx_device_concept_id
+
+-- DROP INDEX "OMOP".idx_device_concept_id;
+
+CREATE INDEX idx_device_concept_id
+    ON "OMOP".device_exposure USING btree
+    (device_concept_id ASC NULLS LAST)
+    TABLESPACE pg_default;
+-- Index: idx_device_person_id
+
+-- DROP INDEX "OMOP".idx_device_person_id;
+
+CREATE INDEX idx_device_person_id
+    ON "OMOP".device_exposure USING btree
+    (person_id ASC NULLS LAST)
+    TABLESPACE pg_default;
+
+ALTER TABLE "OMOP".device_exposure
+    CLUSTER ON idx_device_person_id;
+-- Index: idx_device_visit_id
+
+-- DROP INDEX "OMOP".idx_device_visit_id;
+
+CREATE INDEX idx_device_visit_id
+    ON "OMOP".device_exposure USING btree
+    (visit_occurrence_id ASC NULLS LAST)
+    TABLESPACE pg_default;
+    
+    -- Table: OMOP.domain
+
+-- DROP TABLE "OMOP".domain;
+
+CREATE TABLE "OMOP".domain
+(
+    domain_id character varying(20) COLLATE pg_catalog."default" NOT NULL,
+    domain_name character varying(255) COLLATE pg_catalog."default" NOT NULL,
+    domain_concept_id integer NOT NULL,
+    CONSTRAINT xpk_domain PRIMARY KEY (domain_id),
+    CONSTRAINT fpk_domain_concept FOREIGN KEY (domain_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE "OMOP".domain
+    OWNER to postgres;
+-- Index: idx_domain_domain_id
+
+-- DROP INDEX "OMOP".idx_domain_domain_id;
+
+CREATE UNIQUE INDEX idx_domain_domain_id
+    ON "OMOP".domain USING btree
+    (domain_id COLLATE pg_catalog."default" ASC NULLS LAST)
+    TABLESPACE pg_default;
+
+ALTER TABLE "OMOP".domain
+    CLUSTER ON idx_domain_domain_id;
+    
+    -- Table: OMOP.dose_era
+
+-- DROP TABLE "OMOP".dose_era;
+
+CREATE TABLE "OMOP".dose_era
+(
+    dose_era_id bigint NOT NULL,
+    person_id bigint NOT NULL,
+    drug_concept_id integer NOT NULL,
+    unit_concept_id integer NOT NULL,
+    dose_value numeric NOT NULL,
+    dose_era_start_datetime timestamp without time zone NOT NULL,
+    dose_era_end_datetime timestamp without time zone NOT NULL,
+    CONSTRAINT xpk_dose_era PRIMARY KEY (dose_era_id),
+    CONSTRAINT fpk_dose_era_concept FOREIGN KEY (drug_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_dose_era_person FOREIGN KEY (person_id)
+        REFERENCES "OMOP".person (person_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_dose_era_unit_concept FOREIGN KEY (unit_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE "OMOP".dose_era
+    OWNER to postgres;
+-- Index: idx_dose_era_concept_id
+
+-- DROP INDEX "OMOP".idx_dose_era_concept_id;
+
+CREATE INDEX idx_dose_era_concept_id
+    ON "OMOP".dose_era USING btree
+    (drug_concept_id ASC NULLS LAST)
+    TABLESPACE pg_default;
+-- Index: idx_dose_era_person_id
+
+-- DROP INDEX "OMOP".idx_dose_era_person_id;
+
+CREATE INDEX idx_dose_era_person_id
+    ON "OMOP".dose_era USING btree
+    (person_id ASC NULLS LAST)
+    TABLESPACE pg_default;
+
+ALTER TABLE "OMOP".dose_era
+    CLUSTER ON idx_dose_era_person_id;
+    
+    -- Table: OMOP.drug_era
+
+-- DROP TABLE "OMOP".drug_era;
+
+CREATE TABLE "OMOP".drug_era
+(
+    drug_era_id bigint NOT NULL,
+    person_id bigint NOT NULL,
+    drug_concept_id integer NOT NULL,
+    drug_era_start_datetime timestamp without time zone NOT NULL,
+    drug_era_end_datetime timestamp without time zone NOT NULL,
+    drug_exposure_count integer,
+    gap_days integer,
+    CONSTRAINT xpk_drug_era PRIMARY KEY (drug_era_id),
+    CONSTRAINT fpk_drug_era_concept FOREIGN KEY (drug_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_drug_era_person FOREIGN KEY (person_id)
+        REFERENCES "OMOP".person (person_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE "OMOP".drug_era
+    OWNER to postgres;
+-- Index: idx_drug_era_concept_id
+
+-- DROP INDEX "OMOP".idx_drug_era_concept_id;
+
+CREATE INDEX idx_drug_era_concept_id
+    ON "OMOP".drug_era USING btree
+    (drug_concept_id ASC NULLS LAST)
+    TABLESPACE pg_default;
+-- Index: idx_drug_era_person_id
+
+-- DROP INDEX "OMOP".idx_drug_era_person_id;
+
+CREATE INDEX idx_drug_era_person_id
+    ON "OMOP".drug_era USING btree
+    (person_id ASC NULLS LAST)
+    TABLESPACE pg_default;
+
+ALTER TABLE "OMOP".drug_era
+    CLUSTER ON idx_drug_era_person_id;
+    
+    -- Table: OMOP.drug_exposure
+
+-- DROP TABLE "OMOP".drug_exposure;
+
+CREATE TABLE "OMOP".drug_exposure
+(
+    drug_exposure_id bigint NOT NULL,
+    person_id bigint NOT NULL,
+    drug_concept_id integer NOT NULL,
+    drug_exposure_start_date date,
+    drug_exposure_start_datetime timestamp without time zone NOT NULL,
+    drug_exposure_end_date date,
+    drug_exposure_end_datetime timestamp without time zone NOT NULL,
+    verbatim_end_date date,
+    drug_type_concept_id integer NOT NULL,
+    stop_reason character varying(20) COLLATE pg_catalog."default",
+    refills integer,
+    quantity numeric,
+    days_supply integer,
+    sig text COLLATE pg_catalog."default",
+    route_concept_id integer NOT NULL,
+    lot_number character varying(50) COLLATE pg_catalog."default",
+    provider_id bigint,
+    visit_occurrence_id bigint,
+    visit_detail_id bigint,
+    drug_source_value character varying(50) COLLATE pg_catalog."default",
+    drug_source_concept_id integer NOT NULL,
+    route_source_value character varying(50) COLLATE pg_catalog."default",
+    dose_unit_source_value character varying(50) COLLATE pg_catalog."default",
+    CONSTRAINT xpk_drug_exposure PRIMARY KEY (drug_exposure_id),
+    CONSTRAINT fpk_drug_concept FOREIGN KEY (drug_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_drug_concept_s FOREIGN KEY (drug_source_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_drug_person FOREIGN KEY (person_id)
+        REFERENCES "OMOP".person (person_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_drug_provider FOREIGN KEY (provider_id)
+        REFERENCES "OMOP".provider (provider_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_drug_route_concept FOREIGN KEY (route_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_drug_type_concept FOREIGN KEY (drug_type_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_drug_v_detail FOREIGN KEY (visit_detail_id)
+        REFERENCES "OMOP".visit_detail (visit_detail_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_drug_visit FOREIGN KEY (visit_occurrence_id)
+        REFERENCES "OMOP".visit_occurrence (visit_occurrence_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE "OMOP".drug_exposure
+    OWNER to postgres;
+-- Index: idx_drug_concept_id
+
+-- DROP INDEX "OMOP".idx_drug_concept_id;
+
+CREATE INDEX idx_drug_concept_id
+    ON "OMOP".drug_exposure USING btree
+    (drug_concept_id ASC NULLS LAST)
+    TABLESPACE pg_default;
+-- Index: idx_drug_person_id
+
+-- DROP INDEX "OMOP".idx_drug_person_id;
+
+CREATE INDEX idx_drug_person_id
+    ON "OMOP".drug_exposure USING btree
+    (person_id ASC NULLS LAST)
+    TABLESPACE pg_default;
+
+ALTER TABLE "OMOP".drug_exposure
+    CLUSTER ON idx_drug_person_id;
+-- Index: idx_drug_visit_id
+
+-- DROP INDEX "OMOP".idx_drug_visit_id;
+
+CREATE INDEX idx_drug_visit_id
+    ON "OMOP".drug_exposure USING btree
+    (visit_occurrence_id ASC NULLS LAST)
+    TABLESPACE pg_default;
+    
+    -- Table: OMOP.drug_strength
+
+-- DROP TABLE "OMOP".drug_strength;
+
+CREATE TABLE "OMOP".drug_strength
+(
+    drug_concept_id integer NOT NULL,
+    ingredient_concept_id integer NOT NULL,
+    amount_value numeric,
+    amount_unit_concept_id integer,
+    numerator_value numeric,
+    numerator_unit_concept_id integer,
+    denominator_value numeric,
+    denominator_unit_concept_id integer,
+    box_size integer,
+    valid_start_date date NOT NULL,
+    valid_end_date date NOT NULL,
+    invalid_reason character varying(1) COLLATE pg_catalog."default",
+    CONSTRAINT xpk_drug_strength PRIMARY KEY (drug_concept_id, ingredient_concept_id),
+    CONSTRAINT fpk_drug_strength_concept_1 FOREIGN KEY (drug_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_drug_strength_concept_2 FOREIGN KEY (ingredient_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_drug_strength_unit_1 FOREIGN KEY (amount_unit_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_drug_strength_unit_2 FOREIGN KEY (numerator_unit_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_drug_strength_unit_3 FOREIGN KEY (denominator_unit_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE "OMOP".drug_strength
+    OWNER to postgres;
+-- Index: idx_drug_strength_id_1
+
+-- DROP INDEX "OMOP".idx_drug_strength_id_1;
+
+CREATE INDEX idx_drug_strength_id_1
+    ON "OMOP".drug_strength USING btree
+    (drug_concept_id ASC NULLS LAST)
+    TABLESPACE pg_default;
+
+ALTER TABLE "OMOP".drug_strength
+    CLUSTER ON idx_drug_strength_id_1;
+-- Index: idx_drug_strength_id_2
+
+-- DROP INDEX "OMOP".idx_drug_strength_id_2;
+
+CREATE INDEX idx_drug_strength_id_2
+    ON "OMOP".drug_strength USING btree
+    (ingredient_concept_id ASC NULLS LAST)
+    TABLESPACE pg_default;
+    
+    -- Table: OMOP.fact_relationship
+
+-- DROP TABLE "OMOP".fact_relationship;
+
+CREATE TABLE "OMOP".fact_relationship
+(
+    domain_concept_id_1 integer NOT NULL,
+    fact_id_1 bigint NOT NULL,
+    domain_concept_id_2 integer NOT NULL,
+    fact_id_2 bigint NOT NULL,
+    relationship_concept_id integer NOT NULL,
+    CONSTRAINT fpk_fact_domain_1 FOREIGN KEY (domain_concept_id_1)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_fact_domain_2 FOREIGN KEY (domain_concept_id_2)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_fact_relationship FOREIGN KEY (relationship_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE "OMOP".fact_relationship
+    OWNER to postgres;
+-- Index: idx_fact_relationship_id_1
+
+-- DROP INDEX "OMOP".idx_fact_relationship_id_1;
+
+CREATE INDEX idx_fact_relationship_id_1
+    ON "OMOP".fact_relationship USING btree
+    (domain_concept_id_1 ASC NULLS LAST)
+    TABLESPACE pg_default;
+-- Index: idx_fact_relationship_id_2
+
+-- DROP INDEX "OMOP".idx_fact_relationship_id_2;
+
+CREATE INDEX idx_fact_relationship_id_2
+    ON "OMOP".fact_relationship USING btree
+    (domain_concept_id_2 ASC NULLS LAST)
+    TABLESPACE pg_default;
+-- Index: idx_fact_relationship_id_3
+
+-- DROP INDEX "OMOP".idx_fact_relationship_id_3;
+
+CREATE INDEX idx_fact_relationship_id_3
+    ON "OMOP".fact_relationship USING btree
+    (relationship_concept_id ASC NULLS LAST)
+    TABLESPACE pg_default;
+    
+    -- Table: OMOP.location
+
+-- DROP TABLE "OMOP".location;
+
+CREATE TABLE "OMOP".location
+(
+    location_id bigint NOT NULL,
+    address_1 character varying(50) COLLATE pg_catalog."default",
+    address_2 character varying(50) COLLATE pg_catalog."default",
+    city character varying(50) COLLATE pg_catalog."default",
+    state character varying(2) COLLATE pg_catalog."default",
+    zip character varying(9) COLLATE pg_catalog."default",
+    county character varying(20) COLLATE pg_catalog."default",
+    country character varying(100) COLLATE pg_catalog."default",
+    location_source_value character varying(50) COLLATE pg_catalog."default",
+    latitude numeric,
+    longitude numeric,
+    CONSTRAINT xpk_location PRIMARY KEY (location_id)
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE "OMOP".location
+    OWNER to postgres;
+    
+    -- DROP TABLE "OMOP".location_history;
+
+CREATE TABLE "OMOP".location_history
+(
+    location_history_id bigint NOT NULL,
+    location_id bigint NOT NULL,
+    relationship_type_concept_id integer NOT NULL,
+    domain_id character varying(50) COLLATE pg_catalog."default" NOT NULL,
+    entity_id bigint NOT NULL,
+    start_date date NOT NULL,
+    end_date date,
+    CONSTRAINT xpk_location_history PRIMARY KEY (location_history_id),
+    CONSTRAINT fpk_location_history FOREIGN KEY (location_id)
+        REFERENCES "OMOP".location (location_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_relationship_type FOREIGN KEY (relationship_type_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE "OMOP".location_history
+    OWNER to postgres;
+    
+    -- Table: OMOP.measurement
+
+-- DROP TABLE "OMOP".measurement;
+
+CREATE TABLE "OMOP".measurement
+(
+    measurement_id bigint NOT NULL,
+    person_id bigint NOT NULL,
+    measurement_concept_id integer NOT NULL,
+    measurement_date date,
+    measurement_datetime timestamp without time zone NOT NULL,
+    measurement_time character varying(10) COLLATE pg_catalog."default",
+    measurement_type_concept_id integer NOT NULL,
+    operator_concept_id integer,
+    value_as_number numeric,
+    value_as_concept_id integer,
+    unit_concept_id integer,
+    range_low numeric,
+    range_high numeric,
+    provider_id bigint,
+    visit_occurrence_id bigint,
+    visit_detail_id bigint,
+    measurement_source_value character varying(50) COLLATE pg_catalog."default",
+    measurement_source_concept_id integer NOT NULL,
+    unit_source_value character varying(50) COLLATE pg_catalog."default",
+    value_source_value character varying(50) COLLATE pg_catalog."default",
+    CONSTRAINT xpk_measurement PRIMARY KEY (measurement_id),
+    CONSTRAINT fpk_measurement_concept FOREIGN KEY (measurement_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_measurement_concept_s FOREIGN KEY (measurement_source_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_measurement_operator FOREIGN KEY (operator_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_measurement_person FOREIGN KEY (person_id)
+        REFERENCES "OMOP".person (person_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_measurement_provider FOREIGN KEY (provider_id)
+        REFERENCES "OMOP".provider (provider_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_measurement_type_concept FOREIGN KEY (measurement_type_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_measurement_unit FOREIGN KEY (unit_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_measurement_v_detail FOREIGN KEY (visit_detail_id)
+        REFERENCES "OMOP".visit_detail (visit_detail_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_measurement_value FOREIGN KEY (value_as_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_measurement_visit FOREIGN KEY (visit_occurrence_id)
+        REFERENCES "OMOP".visit_occurrence (visit_occurrence_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE "OMOP".measurement
+    OWNER to postgres;
+-- Index: idx_measurement_concept_id
+
+-- DROP INDEX "OMOP".idx_measurement_concept_id;
+
+CREATE INDEX idx_measurement_concept_id
+    ON "OMOP".measurement USING btree
+    (measurement_concept_id ASC NULLS LAST)
+    TABLESPACE pg_default;
+-- Index: idx_measurement_person_id
+
+-- DROP INDEX "OMOP".idx_measurement_person_id;
+
+CREATE INDEX idx_measurement_person_id
+    ON "OMOP".measurement USING btree
+    (person_id ASC NULLS LAST)
+    TABLESPACE pg_default;
+
+ALTER TABLE "OMOP".measurement
+    CLUSTER ON idx_measurement_person_id;
+-- Index: idx_measurement_visit_id
+
+-- DROP INDEX "OMOP".idx_measurement_visit_id;
+
+CREATE INDEX idx_measurement_visit_id
+    ON "OMOP".measurement USING btree
+    (visit_occurrence_id ASC NULLS LAST)
+    TABLESPACE pg_default;
+    
+    -- Table: OMOP.metadata
+
+-- DROP TABLE "OMOP".metadata;
+
+CREATE TABLE "OMOP".metadata
+(
+    metadata_concept_id integer NOT NULL,
+    metadata_type_concept_id integer NOT NULL,
+    name character varying(250) COLLATE pg_catalog."default" NOT NULL,
+    value_as_string text COLLATE pg_catalog."default",
+    value_as_concept_id integer,
+    metadata_date date,
+    metadata_datetime timestamp without time zone,
+    CONSTRAINT fpk_metadata_concept FOREIGN KEY (metadata_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_metadata_type_concept FOREIGN KEY (metadata_type_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE "OMOP".metadata
+    OWNER to postgres;
+    
+    -- Table: OMOP.note
+
+-- DROP TABLE "OMOP".note;
+
+CREATE TABLE "OMOP".note
+(
+    note_id bigint NOT NULL,
+    person_id bigint NOT NULL,
+    note_event_id bigint,
+    note_event_field_concept_id integer NOT NULL,
+    note_date date,
+    note_datetime timestamp without time zone NOT NULL,
+    note_type_concept_id integer NOT NULL,
+    note_class_concept_id integer NOT NULL,
+    note_title character varying(250) COLLATE pg_catalog."default",
+    note_text text COLLATE pg_catalog."default",
+    encoding_concept_id integer NOT NULL,
+    language_concept_id integer NOT NULL,
+    provider_id bigint,
+    visit_occurrence_id bigint,
+    visit_detail_id bigint,
+    note_source_value character varying(50) COLLATE pg_catalog."default",
+    CONSTRAINT xpk_note PRIMARY KEY (note_id),
+    CONSTRAINT fpk_language_concept FOREIGN KEY (language_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_note_class_concept FOREIGN KEY (note_class_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_note_encoding_concept FOREIGN KEY (encoding_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_note_person FOREIGN KEY (person_id)
+        REFERENCES "OMOP".person (person_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_note_provider FOREIGN KEY (provider_id)
+        REFERENCES "OMOP".provider (provider_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_note_type_concept FOREIGN KEY (note_type_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_note_v_detail FOREIGN KEY (visit_detail_id)
+        REFERENCES "OMOP".visit_detail (visit_detail_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_note_visit FOREIGN KEY (visit_occurrence_id)
+        REFERENCES "OMOP".visit_occurrence (visit_occurrence_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE "OMOP".note
+    OWNER to postgres;
+-- Index: idx_note_concept_id
+
+-- DROP INDEX "OMOP".idx_note_concept_id;
+
+CREATE INDEX idx_note_concept_id
+    ON "OMOP".note USING btree
+    (note_type_concept_id ASC NULLS LAST)
+    TABLESPACE pg_default;
+-- Index: idx_note_person_id
+
+-- DROP INDEX "OMOP".idx_note_person_id;
+
+CREATE INDEX idx_note_person_id
+    ON "OMOP".note USING btree
+    (person_id ASC NULLS LAST)
+    TABLESPACE pg_default;
+
+ALTER TABLE "OMOP".note
+    CLUSTER ON idx_note_person_id;
+-- Index: idx_note_visit_id
+
+-- DROP INDEX "OMOP".idx_note_visit_id;
+
+CREATE INDEX idx_note_visit_id
+    ON "OMOP".note USING btree
+    (visit_occurrence_id ASC NULLS LAST)
+    TABLESPACE pg_default;
+    
+    -- Table: OMOP.note_nlp
+
+-- DROP TABLE "OMOP".note_nlp;
+
+CREATE TABLE "OMOP".note_nlp
+(
+    note_nlp_id bigint NOT NULL,
+    note_id bigint NOT NULL,
+    section_concept_id integer NOT NULL,
+    snippet character varying(250) COLLATE pg_catalog."default",
+    "offset" character varying(250) COLLATE pg_catalog."default",
+    lexical_variant character varying(250) COLLATE pg_catalog."default" NOT NULL,
+    note_nlp_concept_id integer NOT NULL,
+    nlp_system character varying(250) COLLATE pg_catalog."default",
+    nlp_date date NOT NULL,
+    nlp_datetime timestamp without time zone,
+    term_exists character varying(1) COLLATE pg_catalog."default",
+    term_temporal character varying(50) COLLATE pg_catalog."default",
+    term_modifiers character varying(2000) COLLATE pg_catalog."default",
+    note_nlp_source_concept_id integer NOT NULL,
+    CONSTRAINT xpk_note_nlp PRIMARY KEY (note_nlp_id),
+    CONSTRAINT fpk_note_nlp_concept FOREIGN KEY (note_nlp_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_note_nlp_concept_s FOREIGN KEY (note_nlp_source_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_note_nlp_note FOREIGN KEY (note_id)
+        REFERENCES "OMOP".note (note_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_note_nlp_section_concept FOREIGN KEY (section_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE "OMOP".note_nlp
+    OWNER to postgres;
+-- Index: idx_note_nlp_concept_id
+
+-- DROP INDEX "OMOP".idx_note_nlp_concept_id;
+
+CREATE INDEX idx_note_nlp_concept_id
+    ON "OMOP".note_nlp USING btree
+    (note_nlp_concept_id ASC NULLS LAST)
+    TABLESPACE pg_default;
+-- Index: idx_note_nlp_note_id
+
+-- DROP INDEX "OMOP".idx_note_nlp_note_id;
+
+CREATE INDEX idx_note_nlp_note_id
+    ON "OMOP".note_nlp USING btree
+    (note_id ASC NULLS LAST)
+    TABLESPACE pg_default;
+
+ALTER TABLE "OMOP".note_nlp
+    CLUSTER ON idx_note_nlp_note_id;
+    
+    -- Table: OMOP.observation
+
+-- DROP TABLE "OMOP".observation;
+
+CREATE TABLE "OMOP".observation
+(
+    observation_id bigint NOT NULL,
+    person_id bigint NOT NULL,
+    observation_concept_id integer NOT NULL,
+    observation_date date,
+    observation_datetime timestamp without time zone NOT NULL,
+    observation_type_concept_id integer NOT NULL,
+    value_as_number numeric,
+    value_as_string character varying(60) COLLATE pg_catalog."default",
+    value_as_concept_id integer,
+    qualifier_concept_id integer,
+    unit_concept_id integer,
+    provider_id bigint,
+    visit_occurrence_id bigint,
+    visit_detail_id bigint,
+    observation_source_value character varying(50) COLLATE pg_catalog."default",
+    observation_source_concept_id integer NOT NULL,
+    unit_source_value character varying(50) COLLATE pg_catalog."default",
+    qualifier_source_value character varying(50) COLLATE pg_catalog."default",
+    observation_event_id bigint,
+    obs_event_field_concept_id integer NOT NULL,
+    value_as_datetime timestamp without time zone,
+    CONSTRAINT xpk_observation PRIMARY KEY (observation_id),
+    CONSTRAINT fpk_observation_concept FOREIGN KEY (observation_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_observation_concept_s FOREIGN KEY (observation_source_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_observation_person FOREIGN KEY (person_id)
+        REFERENCES "OMOP".person (person_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_observation_provider FOREIGN KEY (provider_id)
+        REFERENCES "OMOP".provider (provider_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_observation_qualifier FOREIGN KEY (qualifier_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_observation_type_concept FOREIGN KEY (observation_type_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_observation_unit FOREIGN KEY (unit_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_observation_v_detail FOREIGN KEY (visit_detail_id)
+        REFERENCES "OMOP".visit_detail (visit_detail_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_observation_value FOREIGN KEY (value_as_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_observation_visit FOREIGN KEY (visit_occurrence_id)
+        REFERENCES "OMOP".visit_occurrence (visit_occurrence_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE "OMOP".observation
+    OWNER to postgres;
+-- Index: idx_observation_concept_id
+
+-- DROP INDEX "OMOP".idx_observation_concept_id;
+
+CREATE INDEX idx_observation_concept_id
+    ON "OMOP".observation USING btree
+    (observation_concept_id ASC NULLS LAST)
+    TABLESPACE pg_default;
+-- Index: idx_observation_person_id
+
+-- DROP INDEX "OMOP".idx_observation_person_id;
+
+CREATE INDEX idx_observation_person_id
+    ON "OMOP".observation USING btree
+    (person_id ASC NULLS LAST)
+    TABLESPACE pg_default;
+
+ALTER TABLE "OMOP".observation
+    CLUSTER ON idx_observation_person_id;
+-- Index: idx_observation_visit_id
+
+-- DROP INDEX "OMOP".idx_observation_visit_id;
+
+CREATE INDEX idx_observation_visit_id
+    ON "OMOP".observation USING btree
+    (visit_occurrence_id ASC NULLS LAST)
+    TABLESPACE pg_default;
+    
+    -- Table: OMOP.observation_period
+
+-- DROP TABLE "OMOP".observation_period;
+
+CREATE TABLE "OMOP".observation_period
+(
+    observation_period_id bigint NOT NULL,
+    person_id bigint NOT NULL,
+    observation_period_start_date date NOT NULL,
+    observation_period_end_date date NOT NULL,
+    period_type_concept_id integer NOT NULL,
+    CONSTRAINT xpk_observation_period PRIMARY KEY (observation_period_id),
+    CONSTRAINT fpk_observation_period_concept FOREIGN KEY (period_type_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_observation_period_person FOREIGN KEY (person_id)
+        REFERENCES "OMOP".person (person_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE "OMOP".observation_period
+    OWNER to postgres;
+-- Index: idx_observation_period_id
+
+-- DROP INDEX "OMOP".idx_observation_period_id;
+
+CREATE INDEX idx_observation_period_id
+    ON "OMOP".observation_period USING btree
+    (person_id ASC NULLS LAST)
+    TABLESPACE pg_default;
+
+ALTER TABLE "OMOP".observation_period
+    CLUSTER ON idx_observation_period_id;
+    
+    -- Table: OMOP.payer_plan_period
+
+-- DROP TABLE "OMOP".payer_plan_period;
+
+CREATE TABLE "OMOP".payer_plan_period
+(
+    payer_plan_period_id bigint NOT NULL,
+    person_id bigint NOT NULL,
+    contract_person_id bigint,
+    payer_plan_period_start_date date NOT NULL,
+    payer_plan_period_end_date date NOT NULL,
+    payer_concept_id integer NOT NULL,
+    plan_concept_id integer NOT NULL,
+    contract_concept_id integer NOT NULL,
+    sponsor_concept_id integer NOT NULL,
+    stop_reason_concept_id integer NOT NULL,
+    payer_source_value character varying(50) COLLATE pg_catalog."default",
+    payer_source_concept_id integer NOT NULL,
+    plan_source_value character varying(50) COLLATE pg_catalog."default",
+    plan_source_concept_id integer NOT NULL,
+    contract_source_value character varying(50) COLLATE pg_catalog."default",
+    contract_source_concept_id integer NOT NULL,
+    sponsor_source_value character varying(50) COLLATE pg_catalog."default",
+    sponsor_source_concept_id integer NOT NULL,
+    family_source_value character varying(50) COLLATE pg_catalog."default",
+    stop_reason_source_value character varying(50) COLLATE pg_catalog."default",
+    stop_reason_source_concept_id integer NOT NULL,
+    CONSTRAINT xpk_payer_plan_period PRIMARY KEY (payer_plan_period_id),
+    CONSTRAINT fpk_contract_concept FOREIGN KEY (contract_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_contract_person FOREIGN KEY (contract_person_id)
+        REFERENCES "OMOP".person (person_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_contract_s FOREIGN KEY (contract_source_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_payer_concept FOREIGN KEY (payer_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_payer_plan_period FOREIGN KEY (person_id)
+        REFERENCES "OMOP".person (person_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_payer_s FOREIGN KEY (payer_source_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_plan_concept_id FOREIGN KEY (plan_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_plan_s FOREIGN KEY (plan_source_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_sponsor_concept FOREIGN KEY (sponsor_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_sponsor_s FOREIGN KEY (sponsor_source_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_stop_reason_concept FOREIGN KEY (stop_reason_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_stop_reason_s FOREIGN KEY (stop_reason_source_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE "OMOP".payer_plan_period
+    OWNER to postgres;
+-- Index: idx_period_person_id
+
+-- DROP INDEX "OMOP".idx_period_person_id;
+
+CREATE INDEX idx_period_person_id
+    ON "OMOP".payer_plan_period USING btree
+    (person_id ASC NULLS LAST)
+    TABLESPACE pg_default;
+
+ALTER TABLE "OMOP".payer_plan_period
+    CLUSTER ON idx_period_person_id;
+    
+    -- Table: OMOP.person
+
+-- DROP TABLE "OMOP".person;
+
+CREATE TABLE "OMOP".person
+(
+    person_id bigint NOT NULL,
+    gender_concept_id integer NOT NULL,
+    year_of_birth integer NOT NULL,
+    month_of_birth integer,
+    day_of_birth integer,
+    birth_datetime timestamp without time zone,
+    death_datetime timestamp without time zone,
+    race_concept_id integer NOT NULL,
+    ethnicity_concept_id integer NOT NULL,
+    location_id bigint,
+    provider_id bigint,
+    care_site_id bigint,
+    person_source_value character varying(50) COLLATE pg_catalog."default",
+    gender_source_value character varying(50) COLLATE pg_catalog."default",
+    gender_source_concept_id integer NOT NULL,
+    race_source_value character varying(50) COLLATE pg_catalog."default",
+    race_source_concept_id integer NOT NULL,
+    ethnicity_source_value character varying(50) COLLATE pg_catalog."default",
+    ethnicity_source_concept_id integer NOT NULL,
+    CONSTRAINT xpk_person PRIMARY KEY (person_id),
+    CONSTRAINT fpk_person_care_site FOREIGN KEY (care_site_id)
+        REFERENCES "OMOP".care_site (care_site_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_person_ethnicity_concept FOREIGN KEY (ethnicity_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_person_ethnicity_concept_s FOREIGN KEY (ethnicity_source_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_person_gender_concept FOREIGN KEY (gender_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_person_gender_concept_s FOREIGN KEY (gender_source_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_person_location FOREIGN KEY (location_id)
+        REFERENCES "OMOP".location (location_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_person_provider FOREIGN KEY (provider_id)
+        REFERENCES "OMOP".provider (provider_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_person_race_concept FOREIGN KEY (race_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_person_race_concept_s FOREIGN KEY (race_source_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE "OMOP".person
+    OWNER to postgres;
+-- Index: idx_person_id
+
+-- DROP INDEX "OMOP".idx_person_id;
+
+CREATE UNIQUE INDEX idx_person_id
+    ON "OMOP".person USING btree
+    (person_id ASC NULLS LAST)
+    TABLESPACE pg_default;
+
+ALTER TABLE "OMOP".person
+    CLUSTER ON idx_person_id;
+
+
+
+
+
+
+    -- Table: OMOP.procedure_occurrence
+
+-- DROP TABLE "OMOP".procedure_occurrence;
+
+CREATE TABLE "OMOP".procedure_occurrence
+(
+    procedure_occurrence_id bigint NOT NULL,
+    person_id bigint NOT NULL,
+    procedure_concept_id integer NOT NULL,
+    procedure_date date,
+    procedure_datetime timestamp without time zone NOT NULL,
+    procedure_type_concept_id integer NOT NULL,
+    modifier_concept_id integer NOT NULL,
+    quantity integer,
+    provider_id bigint,
+    visit_occurrence_id bigint,
+    visit_detail_id bigint,
+    procedure_source_value character varying(50) COLLATE pg_catalog."default",
+    procedure_source_concept_id integer NOT NULL,
+    modifier_source_value character varying(50) COLLATE pg_catalog."default",
+    CONSTRAINT xpk_procedure_occurrence PRIMARY KEY (procedure_occurrence_id),
+    CONSTRAINT fpk_procedure_concept FOREIGN KEY (procedure_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_procedure_concept_s FOREIGN KEY (procedure_source_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_procedure_modifier FOREIGN KEY (modifier_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_procedure_person FOREIGN KEY (person_id)
+        REFERENCES "OMOP".person (person_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_procedure_provider FOREIGN KEY (provider_id)
+        REFERENCES "OMOP".provider (provider_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_procedure_type_concept FOREIGN KEY (procedure_type_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_procedure_v_detail FOREIGN KEY (visit_detail_id)
+        REFERENCES "OMOP".visit_detail (visit_detail_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_procedure_visit FOREIGN KEY (visit_occurrence_id)
+        REFERENCES "OMOP".visit_occurrence (visit_occurrence_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE "OMOP".procedure_occurrence
+    OWNER to postgres;
+-- Index: idx_procedure_concept_id
+
+-- DROP INDEX "OMOP".idx_procedure_concept_id;
+
+CREATE INDEX idx_procedure_concept_id
+    ON "OMOP".procedure_occurrence USING btree
+    (procedure_concept_id ASC NULLS LAST)
+    TABLESPACE pg_default;
+-- Index: idx_procedure_person_id
+
+-- DROP INDEX "OMOP".idx_procedure_person_id;
+
+CREATE INDEX idx_procedure_person_id
+    ON "OMOP".procedure_occurrence USING btree
+    (person_id ASC NULLS LAST)
+    TABLESPACE pg_default;
+
+ALTER TABLE "OMOP".procedure_occurrence
+    CLUSTER ON idx_procedure_person_id;
+-- Index: idx_procedure_visit_id
+
+-- DROP INDEX "OMOP".idx_procedure_visit_id;
+
+CREATE INDEX idx_procedure_visit_id
+    ON "OMOP".procedure_occurrence USING btree
+    (visit_occurrence_id ASC NULLS LAST)
+    TABLESPACE pg_default;
+
+
+
+
+
+
+
+
+
+
+
+    -- Table: OMOP.provider
+
+-- DROP TABLE "OMOP".provider;
+
+CREATE TABLE "OMOP".provider
+(
+    provider_id bigint NOT NULL,
+    provider_name character varying(255) COLLATE pg_catalog."default",
+    npi character varying(20) COLLATE pg_catalog."default",
+    dea character varying(20) COLLATE pg_catalog."default",
+    specialty_concept_id integer NOT NULL,
+    care_site_id bigint,
+    year_of_birth integer,
+    gender_concept_id integer NOT NULL,
+    provider_source_value character varying(50) COLLATE pg_catalog."default",
+    specialty_source_value character varying(50) COLLATE pg_catalog."default",
+    specialty_source_concept_id integer,
+    gender_source_value character varying(50) COLLATE pg_catalog."default",
+    gender_source_concept_id integer NOT NULL,
+    CONSTRAINT xpk_provider PRIMARY KEY (provider_id),
+    CONSTRAINT fpk_provider_care_site FOREIGN KEY (care_site_id)
+        REFERENCES "OMOP".care_site (care_site_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_provider_gender FOREIGN KEY (gender_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_provider_gender_s FOREIGN KEY (gender_source_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_provider_specialty FOREIGN KEY (specialty_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_provider_specialty_s FOREIGN KEY (specialty_source_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE "OMOP".provider
+
+    OWNER to postgres;
+
+
+
+
+
+-- Table: OMOP.relationship
+
+-- DROP TABLE "OMOP".relationship;
+
+CREATE TABLE "OMOP".relationship
+(
+    relationship_id character varying(20) COLLATE pg_catalog."default" NOT NULL,
+    relationship_name character varying(255) COLLATE pg_catalog."default" NOT NULL,
+    is_hierarchical character varying(1) COLLATE pg_catalog."default" NOT NULL,
+    defines_ancestry character varying(1) COLLATE pg_catalog."default" NOT NULL,
+    reverse_relationship_id character varying(20) COLLATE pg_catalog."default" NOT NULL,
+    relationship_concept_id integer NOT NULL,
+    CONSTRAINT xpk_relationship PRIMARY KEY (relationship_id),
+    CONSTRAINT fpk_relationship_concept FOREIGN KEY (relationship_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_relationship_reverse FOREIGN KEY (reverse_relationship_id)
+        REFERENCES "OMOP".relationship (relationship_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE "OMOP".relationship
+    OWNER to postgres;
+-- Index: idx_relationship_rel_id
+
+-- DROP INDEX "OMOP".idx_relationship_rel_id;
+
+CREATE UNIQUE INDEX idx_relationship_rel_id
+    ON "OMOP".relationship USING btree
+    (relationship_id COLLATE pg_catalog."default" ASC NULLS LAST)
+    TABLESPACE pg_default;
+
+ALTER TABLE "OMOP".relationship
+    CLUSTER ON idx_relationship_rel_id;
+
+
+
+
+
+
+    -- Table: OMOP.source_to_concept_map
+
+-- DROP TABLE "OMOP".source_to_concept_map;
+
+CREATE TABLE "OMOP".source_to_concept_map
+(
+    source_code character varying(50) COLLATE pg_catalog."default" NOT NULL,
+    source_concept_id integer NOT NULL,
+    source_vocabulary_id character varying(20) COLLATE pg_catalog."default" NOT NULL,
+    source_code_description character varying(255) COLLATE pg_catalog."default",
+    target_concept_id integer NOT NULL,
+    target_vocabulary_id character varying(20) COLLATE pg_catalog."default" NOT NULL,
+    valid_start_date date NOT NULL,
+    valid_end_date date NOT NULL,
+    invalid_reason character varying(1) COLLATE pg_catalog."default",
+    CONSTRAINT xpk_source_to_concept_map PRIMARY KEY (source_vocabulary_id, target_concept_id, source_code, valid_end_date),
+    CONSTRAINT fpk_source_to_concept_map_c_1 FOREIGN KEY (target_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_source_to_concept_map_v_1 FOREIGN KEY (source_vocabulary_id)
+        REFERENCES "OMOP".vocabulary (vocabulary_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_source_to_concept_map_v_2 FOREIGN KEY (target_vocabulary_id)
+        REFERENCES "OMOP".vocabulary (vocabulary_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE "OMOP".source_to_concept_map
+    OWNER to postgres;
+-- Index: idx_source_to_concept_map_code
+
+-- DROP INDEX "OMOP".idx_source_to_concept_map_code;
+
+CREATE INDEX idx_source_to_concept_map_code
+    ON "OMOP".source_to_concept_map USING btree
+    (source_code COLLATE pg_catalog."default" ASC NULLS LAST)
+    TABLESPACE pg_default;
+-- Index: idx_source_to_concept_map_id_1
+
+-- DROP INDEX "OMOP".idx_source_to_concept_map_id_1;
+
+CREATE INDEX idx_source_to_concept_map_id_1
+    ON "OMOP".source_to_concept_map USING btree
+    (source_vocabulary_id COLLATE pg_catalog."default" ASC NULLS LAST)
+    TABLESPACE pg_default;
+-- Index: idx_source_to_concept_map_id_2
+
+-- DROP INDEX "OMOP".idx_source_to_concept_map_id_2;
+
+CREATE INDEX idx_source_to_concept_map_id_2
+    ON "OMOP".source_to_concept_map USING btree
+    (target_vocabulary_id COLLATE pg_catalog."default" ASC NULLS LAST)
+    TABLESPACE pg_default;
+-- Index: idx_source_to_concept_map_id_3
+
+-- DROP INDEX "OMOP".idx_source_to_concept_map_id_3;
+
+CREATE INDEX idx_source_to_concept_map_id_3
+    ON "OMOP".source_to_concept_map USING btree
+    (target_concept_id ASC NULLS LAST)
+    TABLESPACE pg_default;
+
+ALTER TABLE "OMOP".source_to_concept_map
+    CLUSTER ON idx_source_to_concept_map_id_3;
+    
+    
+    
+    
+    
+    
+    
+    -- Table: OMOP.specimen
+
+-- DROP TABLE "OMOP".specimen;
+
+CREATE TABLE "OMOP".specimen
+(
+    specimen_id bigint NOT NULL,
+    person_id bigint NOT NULL,
+    specimen_concept_id integer NOT NULL,
+    specimen_type_concept_id integer NOT NULL,
+    specimen_date date,
+    specimen_datetime timestamp without time zone NOT NULL,
+    quantity numeric,
+    unit_concept_id integer,
+    anatomic_site_concept_id integer NOT NULL,
+    disease_status_concept_id integer NOT NULL,
+    specimen_source_id character varying(50) COLLATE pg_catalog."default",
+    specimen_source_value character varying(50) COLLATE pg_catalog."default",
+    unit_source_value character varying(50) COLLATE pg_catalog."default",
+    anatomic_site_source_value character varying(50) COLLATE pg_catalog."default",
+    disease_status_source_value character varying(50) COLLATE pg_catalog."default",
+    CONSTRAINT xpk_specimen PRIMARY KEY (specimen_id),
+    CONSTRAINT fpk_specimen_concept FOREIGN KEY (specimen_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_specimen_person FOREIGN KEY (person_id)
+        REFERENCES "OMOP".person (person_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_specimen_site_concept FOREIGN KEY (anatomic_site_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_specimen_status_concept FOREIGN KEY (disease_status_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_specimen_type_concept FOREIGN KEY (specimen_type_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_specimen_unit_concept FOREIGN KEY (unit_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE "OMOP".specimen
+    OWNER to postgres;
+-- Index: idx_specimen_concept_id
+
+-- DROP INDEX "OMOP".idx_specimen_concept_id;
+
+CREATE INDEX idx_specimen_concept_id
+    ON "OMOP".specimen USING btree
+    (specimen_concept_id ASC NULLS LAST)
+    TABLESPACE pg_default;
+-- Index: idx_specimen_person_id
+
+-- DROP INDEX "OMOP".idx_specimen_person_id;
+
+CREATE INDEX idx_specimen_person_id
+    ON "OMOP".specimen USING btree
+    (person_id ASC NULLS LAST)
+    TABLESPACE pg_default;
+
+ALTER TABLE "OMOP".specimen
+    CLUSTER ON idx_specimen_person_id;
+    
+    
+    
+    
+    
+    
+    
+    -- Table: OMOP.survey_conduct
+
+-- DROP TABLE "OMOP".survey_conduct;
+
+CREATE TABLE "OMOP".survey_conduct
+(
+    survey_conduct_id bigint NOT NULL,
+    person_id bigint NOT NULL,
+    survey_concept_id integer NOT NULL,
+    survey_start_date date,
+    survey_start_datetime timestamp without time zone,
+    survey_end_date date,
+    survey_end_datetime timestamp without time zone NOT NULL,
+    provider_id bigint,
+    assisted_concept_id integer NOT NULL,
+    respondent_type_concept_id integer NOT NULL,
+    timing_concept_id integer NOT NULL,
+    collection_method_concept_id integer NOT NULL,
+    assisted_source_value character varying(50) COLLATE pg_catalog."default",
+    respondent_type_source_value character varying(100) COLLATE pg_catalog."default",
+    timing_source_value character varying(100) COLLATE pg_catalog."default",
+    collection_method_source_value character varying(100) COLLATE pg_catalog."default",
+    survey_source_value character varying(100) COLLATE pg_catalog."default",
+    survey_source_concept_id integer NOT NULL,
+    survey_source_identifier character varying(100) COLLATE pg_catalog."default",
+    validated_survey_concept_id integer NOT NULL,
+    validated_survey_source_value character varying(100) COLLATE pg_catalog."default",
+    survey_version_number character varying(20) COLLATE pg_catalog."default",
+    visit_occurrence_id bigint,
+    visit_detail_id bigint,
+    response_visit_occurrence_id bigint,
+    CONSTRAINT xpk_survey PRIMARY KEY (survey_conduct_id),
+    CONSTRAINT fpk_collection_method FOREIGN KEY (collection_method_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_respondent_type FOREIGN KEY (respondent_type_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_response_visit FOREIGN KEY (response_visit_occurrence_id)
+        REFERENCES "OMOP".visit_occurrence (visit_occurrence_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_survey_assist FOREIGN KEY (assisted_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_survey_concept FOREIGN KEY (survey_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_survey_person FOREIGN KEY (person_id)
+        REFERENCES "OMOP".person (person_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_survey_provider FOREIGN KEY (provider_id)
+        REFERENCES "OMOP".provider (provider_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_survey_source FOREIGN KEY (survey_source_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_survey_timing FOREIGN KEY (timing_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_survey_v_detail FOREIGN KEY (visit_detail_id)
+        REFERENCES "OMOP".visit_detail (visit_detail_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_survey_visit FOREIGN KEY (visit_occurrence_id)
+        REFERENCES "OMOP".visit_occurrence (visit_occurrence_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_validation FOREIGN KEY (validated_survey_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE "OMOP".survey_conduct
+    OWNER to postgres;
+-- Index: idx_survey_person_id
+
+-- DROP INDEX "OMOP".idx_survey_person_id;
+
+CREATE INDEX idx_survey_person_id
+    ON "OMOP".survey_conduct USING btree
+    (person_id ASC NULLS LAST)
+    TABLESPACE pg_default;
+
+ALTER TABLE "OMOP".survey_conduct
+    CLUSTER ON idx_survey_person_id;
+    
+    
+    
+    
+    
+    
+    
+    
+    -- Table: OMOP.visit_detail
+
+-- DROP TABLE "OMOP".visit_detail;
+
+CREATE TABLE "OMOP".visit_detail
+(
+    visit_detail_id bigint NOT NULL,
+    person_id bigint NOT NULL,
+    visit_detail_concept_id integer NOT NULL,
+    visit_detail_start_date date,
+    visit_detail_start_datetime timestamp without time zone NOT NULL,
+    visit_detail_end_date date,
+    visit_detail_end_datetime timestamp without time zone NOT NULL,
+    visit_detail_type_concept_id integer NOT NULL,
+    provider_id bigint,
+    care_site_id bigint,
+    discharge_to_concept_id integer NOT NULL,
+    admitted_from_concept_id integer NOT NULL,
+    admitted_from_source_value character varying(50) COLLATE pg_catalog."default",
+    visit_detail_source_value character varying(50) COLLATE pg_catalog."default",
+    visit_detail_source_concept_id integer NOT NULL,
+    discharge_to_source_value character varying(50) COLLATE pg_catalog."default",
+    preceding_visit_detail_id bigint,
+    visit_detail_parent_id bigint,
+    visit_occurrence_id bigint NOT NULL,
+    CONSTRAINT xpk_visit_detail PRIMARY KEY (visit_detail_id),
+    CONSTRAINT fpd_v_detail_visit FOREIGN KEY (visit_occurrence_id)
+        REFERENCES "OMOP".visit_occurrence (visit_occurrence_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_v_detail_care_site FOREIGN KEY (care_site_id)
+        REFERENCES "OMOP".care_site (care_site_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_v_detail_concept FOREIGN KEY (visit_detail_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_v_detail_concept_s FOREIGN KEY (visit_detail_source_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_v_detail_discharge FOREIGN KEY (discharge_to_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_v_detail_parent FOREIGN KEY (visit_detail_parent_id)
+        REFERENCES "OMOP".visit_detail (visit_detail_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_v_detail_person FOREIGN KEY (person_id)
+        REFERENCES "OMOP".person (person_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_v_detail_preceding FOREIGN KEY (preceding_visit_detail_id)
+        REFERENCES "OMOP".visit_detail (visit_detail_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_v_detail_provider FOREIGN KEY (provider_id)
+        REFERENCES "OMOP".provider (provider_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_v_detail_type_concept FOREIGN KEY (visit_detail_type_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE "OMOP".visit_detail
+    OWNER to postgres;
+-- Index: idx_visit_detail_concept_id
+
+-- DROP INDEX "OMOP".idx_visit_detail_concept_id;
+
+CREATE INDEX idx_visit_detail_concept_id
+    ON "OMOP".visit_detail USING btree
+    (visit_detail_concept_id ASC NULLS LAST)
+    TABLESPACE pg_default;
+-- Index: idx_visit_detail_person_id
+
+-- DROP INDEX "OMOP".idx_visit_detail_person_id;
+
+CREATE INDEX idx_visit_detail_person_id
+    ON "OMOP".visit_detail USING btree
+    (person_id ASC NULLS LAST)
+    TABLESPACE pg_default;
+
+ALTER TABLE "OMOP".visit_detail
+    CLUSTER ON idx_visit_detail_person_id;
+    
+    
+    
+    
+    
+    
+    
+    -- Table: OMOP.visit_occurrence
+
+-- DROP TABLE "OMOP".visit_occurrence;
+
+CREATE TABLE "OMOP".visit_occurrence
+(
+    visit_occurrence_id bigint NOT NULL,
+    person_id bigint NOT NULL,
+    visit_concept_id integer NOT NULL,
+    visit_start_date date,
+    visit_start_datetime timestamp without time zone NOT NULL,
+    visit_end_date date,
+    visit_end_datetime timestamp without time zone NOT NULL,
+    visit_type_concept_id integer NOT NULL,
+    provider_id bigint,
+    care_site_id bigint,
+    visit_source_value character varying(50) COLLATE pg_catalog."default",
+    visit_source_concept_id integer NOT NULL,
+    admitted_from_concept_id integer NOT NULL,
+    admitted_from_source_value character varying(50) COLLATE pg_catalog."default",
+    discharge_to_source_value character varying(50) COLLATE pg_catalog."default",
+    discharge_to_concept_id integer NOT NULL,
+    preceding_visit_occurrence_id bigint,
+    CONSTRAINT xpk_visit_occurrence PRIMARY KEY (visit_occurrence_id),
+    CONSTRAINT fpk_visit_care_site FOREIGN KEY (care_site_id)
+        REFERENCES "OMOP".care_site (care_site_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_visit_concept FOREIGN KEY (visit_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_visit_concept_s FOREIGN KEY (visit_source_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_visit_discharge FOREIGN KEY (discharge_to_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_visit_person FOREIGN KEY (person_id)
+        REFERENCES "OMOP".person (person_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_visit_preceding FOREIGN KEY (preceding_visit_occurrence_id)
+        REFERENCES "OMOP".visit_occurrence (visit_occurrence_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_visit_provider FOREIGN KEY (provider_id)
+        REFERENCES "OMOP".provider (provider_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fpk_visit_type_concept FOREIGN KEY (visit_type_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE "OMOP".visit_occurrence
+    OWNER to postgres;
+-- Index: idx_visit_concept_id
+
+-- DROP INDEX "OMOP".idx_visit_concept_id;
+
+CREATE INDEX idx_visit_concept_id
+    ON "OMOP".visit_occurrence USING btree
+    (visit_concept_id ASC NULLS LAST)
+    TABLESPACE pg_default;
+-- Index: idx_visit_person_id
+
+-- DROP INDEX "OMOP".idx_visit_person_id;
+
+CREATE INDEX idx_visit_person_id
+    ON "OMOP".visit_occurrence USING btree
+    (person_id ASC NULLS LAST)
+    TABLESPACE pg_default;
+
+ALTER TABLE "OMOP".visit_occurrence
+    CLUSTER ON idx_visit_person_id;
+    
+    
+    
+    
+    
+    
+    
+    
+    -- Table: OMOP.vocabulary
+
+-- DROP TABLE "OMOP".vocabulary;
+
+CREATE TABLE "OMOP".vocabulary
+(
+    vocabulary_id character varying(20) COLLATE pg_catalog."default" NOT NULL,
+    vocabulary_name character varying(255) COLLATE pg_catalog."default" NOT NULL,
+    vocabulary_reference character varying(255) COLLATE pg_catalog."default" NOT NULL,
+    vocabulary_version character varying(255) COLLATE pg_catalog."default",
+    vocabulary_concept_id integer NOT NULL,
+    CONSTRAINT xpk_vocabulary PRIMARY KEY (vocabulary_id),
+    CONSTRAINT fpk_vocabulary_concept FOREIGN KEY (vocabulary_concept_id)
+        REFERENCES "OMOP".concept (concept_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE "OMOP".vocabulary
+    OWNER to postgres;
+-- Index: idx_vocabulary_vocabulary_id
+
+-- DROP INDEX "OMOP".idx_vocabulary_vocabulary_id;
+
+CREATE UNIQUE INDEX idx_vocabulary_vocabulary_id
+    ON "OMOP".vocabulary USING btree
+    (vocabulary_id COLLATE pg_catalog."default" ASC NULLS LAST)
+    TABLESPACE pg_default;
+
+ALTER TABLE "OMOP".vocabulary
+    CLUSTER ON idx_vocabulary_vocabulary_id;
+    
+    
+    
+    
+    
